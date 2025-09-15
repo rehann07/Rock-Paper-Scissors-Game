@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors</title>
+    <link rel="icon" href="favicon.ico">
+
+    <style>
+        /* General Styling */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ff758c, #ff7eb3);
+            padding: 20px;
+            margin: 0;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* Headings */
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        h2, h3 {
+            margin: 10px 0;
+        }
+
+        /* Fixed Container */
+        .container {
+            background: rgba(255, 255, 255, 0.15);
+            width: 90%;
+            max-width: 450px;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            backdrop-filter: blur(12px);
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        /* Fade In Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Score Section */
+        #score {
+            font-size: 22px;
+            font-weight: bold;
+            padding: 10px;
+            width: 100%;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            display: block;
+            margin-bottom: 20px;
+        }
+
+        /* Choices Buttons */
+        .choices {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .choices button {
+            font-size: 18px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            background: #6a11cb;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .choices button:hover {
+            background: #2575fc;
+            transform: scale(1.1);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Reset Button */
+        .reset-button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            font-size: 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #ff3e3e;
+            color: white;
+            font-weight: bold;
+            transition: 0.3s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .reset-button:hover {
+            background: #cc0000;
+            transform: scale(1.1);
+        }
+
+        /* Game History */
+        #history {
+            font-size: 20px;
+            font-weight: bold;
+            text-decoration: underline;
+            margin-top: 20px;
+        }
+
+        #historyList {
+            list-style: none;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.3);
+            width: 100%;
+        }
+
+        /* History Items */
+        #historyList li {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 6px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0;
+            animation: slideIn 0.5s ease-in-out forwards;
+        }
+
+        /* Slide In Animation */
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+<h1>Rock Paper Scissors</h1>
+<div class="container">
+    <div class="choices">
+        <button onclick="playGame('rock')">Rock</button>
+        <button onclick="playGame('paper')">Paper</button>
+        <button onclick="playGame('scissors')">Scissors</button>
+    </div>
+    <h2 id="result">Choose an option to start!</h2>
+    <h3 id="score">Wins: 0 | Losses: 0 | Ties: 0</h3>
+    <h3 id="history">Game History:</h3>
+    <ul id="historyList"></ul>
+    <button class="reset-button" onclick="resetScores()">Reset Scores</button>
+</div>
+<script>
+    const apiUrl = "http://localhost:8080/scores"; // Update if your backend runs on a different port
+
+// Fetch initial scores from backend
+async function fetchScores() {
+    try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        updateScoreUI(data.wins, data.loses, data.ties);
+    } catch (error) {
+        console.error("Error fetching scores:", error);
+    }
+}
+
+// Update UI with latest scores
+function updateScoreUI(wins, losses, ties) {
+    document.getElementById('score').innerText = `Wins: ${wins} | Losses: ${losses} | Ties: ${ties}`;
+}
+
+// Play game and update backend
+async function playGame(userChoice) {
+    const choices = ["rock", "paper", "scissors"];
+    const computerChoice = choices[Math.floor(Math.random() * choices.length)];
+    let result = "";
+
+    if (userChoice === computerChoice) {
+        result = "It's a draw!";
+        await updateScore("ties");
+    } else if (
+        (userChoice === "rock" && computerChoice === "scissors") ||
+        (userChoice === "paper" && computerChoice === "rock") ||
+        (userChoice === "scissors" && computerChoice === "paper")
+    ) {
+        result = "You win!";
+        await updateScore("wins");
+    } else {
+        result = "You lose!";
+        await updateScore("loses");
+    }
+
+    document.getElementById("result").innerText = `You chose ${userChoice}, computer chose ${computerChoice}. ${result}`;
+    fetchScores(); // Refresh scores from backend
+    addHistory(userChoice, computerChoice, result);
+}
+
+// Send update request to backend
+async function updateScore(type) {
+    try {
+        await fetch(`${apiUrl}/${type}`, { method: "POST" });
+    } catch (error) {
+        console.error(`Error updating ${type}:`, error);
+    }
+}
+
+// Add game history to UI
+function addHistory(player, computer, result) {
+    const historyList = document.getElementById("historyList");
+    const listItem = document.createElement("li");
+
+    const badge = document.createElement("span");
+    badge.classList.add("badge");
+
+    if (result.includes("win")) {
+        badge.textContent = "Win";
+        badge.classList.add("win-badge");
+    } else if (result.includes("lose")) {
+        badge.textContent = "Lose";
+        badge.classList.add("lose-badge");
+    } else {
+        badge.textContent = "Draw";
+        badge.classList.add("draw-badge");
+    }
+
+    listItem.innerHTML = `You: ${player} | Computer: ${computer}`;
+    listItem.appendChild(badge);
+    historyList.prepend(listItem);
+
+    if (historyList.children.length > 10) {
+        historyList.removeChild(historyList.lastChild);
+    }
+}
+
+// Reset scores in backend
+async function resetScores() {
+    try {
+        const defaultScores = { wins: 0, loses: 0, ties: 0 };
+        await fetch(apiUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(defaultScores),
+        });
+
+        setTimeout(fetchScores, 200); // Wait before fetching new scores
+        document.getElementById("historyList").innerHTML = "";
+        document.getElementById("result").innerText = "";
+    } catch (error) {
+        console.error("Error resetting scores:", error);
+    }
+}
+
+// Load scores on page load
+fetchScores();
+
+</script>
+</body>
+</html>
